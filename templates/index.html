@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Declutter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        h2, h3 {
+            margin: 5px 0;
+            color: #555;
+        }
+        .img-container {
+            max-width: 90vw;
+            max-height: 75vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            overflow-y: auto;
+            transition: all 0.5s ease;
+        }
+        img {
+            max-width: inherit;
+            max-height: inherit;
+            width: inherit;
+            height: inherit;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        .info {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            margin-top: 20px;
+        }
+        form {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <h1>Declutter Your Photo Library</h1>
+        {% if photo %}
+            <div class="info">
+                <h2>{{ photo_name }}</h2>
+                <h3>{{ photo_album }}</h3>
+                <div class="img-container" id="imageContainer">
+                    <img src="{{ url_for('static', filename='images/' + photo) }}" alt="Photo" id="photoImage" onclick="rotateImage()">
+                </div>
+            </div>
+            <form action="{{ url_for('swipe') }}" method="post">
+                <button type="button" onclick="rotateImage()">Rotate</button>
+                <button name="action" value="left">Delete</button>
+                <button name="action" value="right">Accept</button>
+                <button name="action" value="top">Favorite</button>
+                <input type="hidden" name="photo_id" value="{{ photo }}">
+            </form>
+        {% else %}
+            <p>No photos to display.</p>
+        {% endif %}
+    </div>
+    <script>
+        let angle = 0; // Initial angle
+        function rotateImage() {
+            const img = document.getElementById('photoImage');
+            const container = document.getElementById('imageContainer');
+            angle = (angle + 90) % 360; // Increase the angle by 90 degrees and wrap around at 360
+            img.style.transform = `rotate(${angle}deg)`; // Apply the rotation
+
+            // Check the orientation and adjust the container size dynamically
+            const isPortrait = angle % 180 !== 0;
+            container.style.maxWidth = isPortrait ? '75vh' : '90vw';
+            container.style.maxHeight = isPortrait ? '90vw' : '75vh';
+        }
+    </script>
+</body>
+</html>
