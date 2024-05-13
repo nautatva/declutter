@@ -1,4 +1,4 @@
-from flask import Flask, g, render_template, request, redirect, url_for, abort, send_file
+from flask import Flask, g, render_template, request, redirect, url_for, abort, send_file, jsonify
 from utils.photo_manager import PhotoManager
 import os
 import io
@@ -70,15 +70,15 @@ def index():
     # Get a random photo from the album
     db = get_db()
     photo_manager = PhotoManager(base_path=config_params['basepath'], fav_path=config_params['favoritespath'], db=db)
-    photo = photo_manager.get_random_photo()
-    # base64 encode the photo path
+    photo, size = photo_manager.get_photos_by_size_desc()
 
     # photo_name is the relative path to the image
     photo_relative_path = photo.replace(config_params['basepath'], '')
     # Separate the album name and photo name
     album_name, photo_name = os.path.split(photo_relative_path)
+    # base64 encode the photo path
     photo = base64.b64encode(photo.encode('utf-8')).decode('utf-8')
-    return render_template('index.html', photo=photo, photo_album=album_name, photo_name=photo_name)
+    return render_template('index.html', photo=photo, photo_size=round(size/1024/1024, 2), photo_album=album_name, photo_name=photo_name)
 
 @app.route('/swipe', methods=['POST'])
 def swipe():
@@ -99,4 +99,4 @@ def swipe():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
