@@ -20,6 +20,7 @@
         <div class="info">
             <h2>{{ photo_name }}</h2>
             <h3>{{ photo_album }}, {{photo_size}} MB</h3>
+            <h4>Dizzy: {{dizziness}}</h4>
             <div class="img-container" id="imageContainer">
                 <img src="{{ url_for('static', filename='images/' + photo) }}" alt="Photo" id="photoImage"
                     onclick="rotateImage()">

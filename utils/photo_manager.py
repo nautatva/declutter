@@ -1,10 +1,18 @@
 import os
 import random
-import sqlite3
 from shutil import move, copy2
 
 BIN = "Bin"
 IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg']
+DB_COMMIT_SIZE = 100
+
+
+from enum import Enum
+class Metric(Enum):
+    DEFAULT = "id"
+    SIZE = "size"
+    DIZZINESS = "dizziness"
+
 
 class PhotoManager:
     def __init__(self, base_path, fav_path, db, bin_path=None):
@@ -22,6 +30,7 @@ class PhotoManager:
         id INTEGER PRIMARY KEY,
         path TEXT UNIQUE,
         size INTEGER,
+        dizziness INTEGER,
         status TEXT
                     )
         """)
@@ -39,31 +48,50 @@ class PhotoManager:
         new_photos = [photo for photo in all_photos if photo not in existing_photos]
 
         # Insert new photos into DB
+        img_count = 0
         for photo in new_photos:
-            folder = os.path.dirname(photo)
+            img_count = img_count+1
+            folder = os.path.basename(os.path.dirname(photo))
             if folder == BIN:
                 continue
-            size = os.path.getsize(photo)
+            size = os.path.getsize(photo)/1024/1024
+            
             cursor.execute("INSERT OR IGNORE INTO photos (path, size) VALUES (?, ?)", (photo, size))
+            if img_count%DB_COMMIT_SIZE==0:
+                print("Img count is", img_count)
+                self.conn.commit()
+        if img_count%DB_COMMIT_SIZE!=0:
+            self.conn.commit()
 
         self.conn.commit()
         return len(new_photos)
 
-    def get_all_unmarked_photos(self, refresh_photos_if_nothing_found=True):
+    def get_all_unmarked_photos(self, sort_by_desc="id", refresh_photos_if_nothing_found=True):
         # List all photos that are not yet marked in the database
         cursor = self.conn.cursor()
-        cursor.execute("SELECT path, size FROM photos WHERE status IS NULL ORDER BY size desc")
+        cursor.execute(f"SELECT * FROM photos WHERE status IS NULL ORDER BY {sort_by_desc} desc")
         unchecked_photos = cursor.fetchall()
 
         if not unchecked_photos and refresh_photos_if_nothing_found:
             self.refresh_scan()
             return self.get_all_unmarked_photos(refresh_photos_if_nothing_found=False)
 
-        return unchecked_photos
+        # Get column names
+        column_names = [description[0] for description in cursor.description]
 
-    def get_photos_by_size_desc(self):
-        photos = self.get_all_unmarked_photos()
-        return photos[0][0], photos[0][1] if photos else None
+        # Convert photos to JSON format
+        photos_json = []
+        for photo in unchecked_photos:
+            photo_dict = {}
+            for idx, column in enumerate(column_names):
+                photo_dict[column] = photo[idx]
+            photos_json.append(photo_dict)
+
+        return photos_json
+
+    def get_photos_by_metric_desc(self, metric:Metric):
+        photos = self.get_all_unmarked_photos(metric.name)
+        return photos[0] if photos else None
 
     def get_random_photo(self):
         unchecked_photos = self.get_all_unmarked_photos()
