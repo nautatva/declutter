@@ -57,20 +57,30 @@ def serve_compressed_image(filename_base64):
     return send_file(img_io, mimetype='image/jpeg', as_attachment=True, download_name='compressed.jpg')
 
 @app.route('/')
-def index():
-    # Get a random photo from the album
+def index():    
+    # Get the metric from the query parameters
+    metric_name = request.args.get('metric', default=None, type=str)
+
     db = get_db()
     photo_manager = PhotoManager(base_path=config_params['basepath'], fav_path=config_params['favoritespath'], db=db)
-    photo_dict = photo_manager.get_photos_by_metric_desc(Metric.SIZE)
-    
-    photo = photo_dict['path']
+
+    if metric_name is None or metric_name.upper() == "NONE":
+        photo_dict = photo_manager.get_random_photo()
+    else:
+        # Map the metric name to the corresponding Enum member
+        metric = getattr(Metric, metric_name.upper())
+        photo_dict = photo_manager.get_photos_by_metric_desc(metric)
+
+    photo: str = photo_dict['path']
     # photo_name is the relative path to the image
     photo_relative_path = photo.replace(config_params['basepath'], '')
     # Separate the album name and photo name
     album_name, photo_name = os.path.split(photo_relative_path)
     # base64 encode the photo path
     photo = base64.b64encode(photo.encode('utf-8')).decode('utf-8')
-    return render_template('index.html', photo=photo, photo_size=round(photo_dict['size'], 2), dizziness=round(photo_dict['dizziness'] or 0, 2), photo_album=album_name, photo_name=photo_name)
+    
+    metrics = [metric.name for metric in Metric]
+    return render_template('index.html', metrics=metrics, photo=photo, photo_size=round(photo_dict['size'], 2), dizziness=round(photo_dict['dizziness'] or 0, 2), photo_album=album_name, photo_name=photo_name)
 
 @app.route('/swipe', methods=['POST'])
 def swipe():

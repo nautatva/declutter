@@ -9,7 +9,7 @@ DB_COMMIT_SIZE = 100
 
 from enum import Enum
 class Metric(Enum):
-    DEFAULT = "id"
+    NONE = None
     SIZE = "size"
     DIZZINESS = "dizziness"
 
@@ -95,7 +95,7 @@ class PhotoManager:
 
     def get_random_photo(self):
         unchecked_photos = self.get_all_unmarked_photos()
-        return random.choice([x[0] for x in unchecked_photos]) if unchecked_photos else None
+        return random.choice(unchecked_photos) if unchecked_photos else None
 
     def update_photo_status(self, photo_path, status):
         cursor = self.conn.cursor()
