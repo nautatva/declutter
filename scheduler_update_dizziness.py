@@ -13,8 +13,6 @@ photos = photo_manager.get_all_unmarked_photos()
 cursor = db.cursor()
 DB_COMMIT_SIZE = 100
 
-img_pointer = 0
-
 def dizziness_factor(photo_path):
     image = cv2.imread(photo_path)
     # Convert to grayscale
@@ -25,6 +23,7 @@ def dizziness_factor(photo_path):
     dizziness_factor = np.mean(diff)
     return dizziness_factor
 
+img_pointer = 0
 for photo in photos:
     img_pointer = img_pointer + 1
     path = photo['path']

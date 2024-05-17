@@ -2,6 +2,9 @@ import os
 import random
 from shutil import move, copy2
 from .Metric import Metric
+from utils.file_utils import get_most_accurate_creation_date_from_file
+import time
+
 
 BIN = "Bin"
 IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg']
@@ -23,6 +26,7 @@ class PhotoManager:
         id INTEGER PRIMARY KEY,
         path TEXT UNIQUE,
         size INTEGER,
+        capture_date INTEGER,
         dizziness INTEGER,
         status TEXT
         )
@@ -39,7 +43,7 @@ class PhotoManager:
         # Scan for new photos
         all_photos = [os.path.join(dp, f) for dp, dn, filenames in os.walk(self.base_path) for f in filenames if os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS]
         new_photos = [photo for photo in all_photos if photo not in existing_photos]
-
+        
         # Insert new photos into DB
         img_count = 0
         for photo in new_photos:
@@ -48,8 +52,16 @@ class PhotoManager:
             if folder == BIN:
                 continue
             size = os.path.getsize(photo) / 1024 / 1024
+            capture_date, _ = get_most_accurate_creation_date_from_file(photo, quick=True)
+            
+            # Convert capture_date to epoch timestamp
+            if capture_date:
+                capture_date_epoch = int(time.mktime(capture_date.timetuple()))
+            else:
+                capture_date_epoch = None
 
-            cursor.execute("INSERT OR IGNORE INTO photos (path, size) VALUES (?, ?)", (photo, size))
+            cursor.execute("INSERT OR IGNORE INTO photos (path, size, capture_date) VALUES (?, ?, ?)", (photo, size, capture_date_epoch))
+
             if img_count % DB_COMMIT_SIZE == 0:
                 print("Img count is", img_count)
                 self.conn.commit()
