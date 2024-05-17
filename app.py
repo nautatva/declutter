@@ -5,7 +5,7 @@ import base64
 from PIL import Image
 from config import config
 
-from utils.photo_manager import PhotoManager, Metric
+from models.photo_manager import PhotoManager, Metric
 from utils.db_utils import get_db, close_db
 
 app = Flask(__name__)

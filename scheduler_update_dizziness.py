@@ -2,7 +2,7 @@ from config import config
 
 from utils.image_utils import dizziness_factor
 from utils.db_utils import get_raw_db, close_db_sqlite
-from utils.photo_manager import PhotoManager, Metric
+from models.photo_manager import PhotoManager, Metric
 
 
 config_params = config()

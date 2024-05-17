@@ -1,18 +1,11 @@
 import os
 import random
 from shutil import move, copy2
+from .Metric import Metric
 
 BIN = "Bin"
 IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg']
 DB_COMMIT_SIZE = 100
-
-
-from enum import Enum
-class Metric(Enum):
-    NONE = None
-    SIZE = "size"
-    DIZZINESS = "dizziness"
-
 
 class PhotoManager:
     def __init__(self, base_path, fav_path, db, bin_path=None):
@@ -32,7 +25,7 @@ class PhotoManager:
         size INTEGER,
         dizziness INTEGER,
         status TEXT
-                    )
+        )
         """)
         self.conn.commit()
 
@@ -50,17 +43,18 @@ class PhotoManager:
         # Insert new photos into DB
         img_count = 0
         for photo in new_photos:
-            img_count = img_count+1
+            img_count += 1
             folder = os.path.basename(os.path.dirname(photo))
             if folder == BIN:
                 continue
-            size = os.path.getsize(photo)/1024/1024
-            
+            size = os.path.getsize(photo) / 1024 / 1024
+
             cursor.execute("INSERT OR IGNORE INTO photos (path, size) VALUES (?, ?)", (photo, size))
-            if img_count%DB_COMMIT_SIZE==0:
+            if img_count % DB_COMMIT_SIZE == 0:
                 print("Img count is", img_count)
                 self.conn.commit()
-        if img_count%DB_COMMIT_SIZE!=0:
+
+        if img_count % DB_COMMIT_SIZE != 0:
             self.conn.commit()
 
         self.conn.commit()
@@ -89,7 +83,7 @@ class PhotoManager:
 
         return photos_json
 
-    def get_photos_by_metric_desc(self, metric:Metric):
+    def get_photos_by_metric_desc(self, metric: Metric):
         photos = self.get_all_unmarked_photos(metric.name)
         return photos[0] if photos else None
 
