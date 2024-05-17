@@ -1,9 +1,9 @@
 from config import config
 import cv2
-import numpy as np
-from utils.db_utils import get_raw_db, close_db_sqlite
 from models.photo_manager import PhotoManager
+from utils.app_utils import append_to_similar_images_map
 from utils.common_utils import is_json_key_present
+from utils.db_utils import get_raw_db, close_db_sqlite
 
 
 TIME_THRESHOLD = 300  # 5 minutes in seconds
@@ -68,14 +68,6 @@ DB_COMMIT_SIZE = 10
 
 similar_images = db.execute("SELECT image1, image2 FROM image_similarity")
 similar_images_map = {}  # Image -> List of similar images
-
-def append_to_similar_images_map(image1, image2, similar_images_map):
-    if not is_json_key_present(similar_images_map, image1):
-        similar_images_map[image1] = []
-    if not is_json_key_present(similar_images_map, image2):
-        similar_images_map[image2] = []
-    similar_images_map[image1].append(image2)
-    similar_images_map[image2].append(image1)
 
 for row in similar_images:
     row = row

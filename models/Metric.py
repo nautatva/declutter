@@ -4,3 +4,4 @@ class Metric(Enum):
     NONE = None
     SIZE = "size"
     DIZZINESS = "dizziness"
+    DUPLICATES = "duplicates"

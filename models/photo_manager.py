@@ -4,7 +4,7 @@ from shutil import move, copy2
 from .Metric import Metric
 from utils.file_utils import get_most_accurate_creation_date_from_file
 import time
-
+from utils.app_utils import append_to_similar_images_map
 
 BIN = "Bin"
 IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg']
@@ -72,11 +72,17 @@ class PhotoManager:
         self.conn.commit()
         return len(new_photos)
 
-    def get_all_unmarked_photos(self, sort_by_desc="id", refresh_photos_if_nothing_found=True):
+    def get_all_unmarked_photos(self, sort_by_desc="id", photo_paths=None, refresh_photos_if_nothing_found=True):
         # List all photos that are not yet marked in the database
         cursor = self.conn.cursor()
-        cursor.execute(f"SELECT * FROM photos WHERE status IS NULL ORDER BY {sort_by_desc} desc")
-        unchecked_photos = cursor.fetchall()
+        if photo_paths is not None:
+            # photo_paths separated by ,
+            # photo_paths = photo_paths.split(",")
+            query = f"SELECT * FROM photos WHERE path in ({','.join(['?']*len(photo_paths))}) ORDER BY {sort_by_desc} desc"
+            photos = cursor.execute(query, photo_paths)
+        else:
+            photos = cursor.execute(f"SELECT * FROM photos WHERE status IS NULL ORDER BY {sort_by_desc} desc")
+        unchecked_photos = photos.fetchall()
 
         if not unchecked_photos and refresh_photos_if_nothing_found:
             self.refresh_scan()
@@ -102,6 +108,42 @@ class PhotoManager:
     def get_random_photo(self):
         unchecked_photos = self.get_all_unmarked_photos()
         return random.choice(unchecked_photos) if unchecked_photos else None
+    
+    def get_duplicates(self):
+        # SELECT image1, image2 FROM image_similarity
+        cursor = self.conn.cursor()
+        similar_images = cursor.execute("SELECT image1, image2 FROM image_similarity")
+        similar_images_map = {}  # Image -> List of similar images
+        for row in similar_images:
+            row = row
+            image1 = row[0]
+            image2 = row[1]
+            if image2 is None:
+                continue
+            else:
+                append_to_similar_images_map(image1, image2, similar_images_map)
+        
+        # Remove image keys that are present in values
+        keys = list(similar_images_map.keys())
+        for key in keys:
+            if key not in similar_images_map.keys():
+                continue
+            similar_images = similar_images_map[key]
+            for image in similar_images:
+                if image in similar_images_map:
+                    del similar_images_map[image]
+
+        print(similar_images_map)
+
+        return similar_images_map
+
+    def get_duplicates_given_images(self, photo_path: str):
+        cursor = self.conn.cursor()
+        similar_images = cursor.execute("SELECT image1, image2 FROM image_similarity where image1 = ? or image2 = ?", (photo_path, photo_path))
+        similar_images = similar_images.fetchall()
+        similar_images = [img[0] for img in similar_images]
+        images = self.get_all_unmarked_photos(photo_paths=similar_images)
+        return images
 
     def update_photo_status(self, photo_path, status):
         cursor = self.conn.cursor()

@@ -69,7 +69,10 @@ def index():
     else:
         # Map the metric name to the corresponding Enum member
         metric = getattr(Metric, metric_name.upper())
-        photo_dict = photo_manager.get_photos_by_metric_desc(metric)
+        if metric == Metric.DUPLICATES:
+            photo_dict = photo_manager.get_duplicates()
+        else:
+            photo_dict = photo_manager.get_photos_by_metric_desc(metric)
 
     photo: str = photo_dict['path']
     # photo_name is the relative path to the image
