@@ -130,3 +130,7 @@ class PhotoManager:
         copy2(photo_path, self.fav_path)
         # Set metadata to 5 stars (this is just a placeholder)
         self.update_photo_status(photo_path, 'favorited')
+
+    def flag_image(self, photo_path):
+        # Flag an image for review
+        self.update_photo_status(photo_path, "Flagged")
