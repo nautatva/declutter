@@ -1,6 +1,6 @@
 from config import config
-
-from utils.image_utils import dizziness_factor
+import cv2
+import numpy as np
 from utils.db_utils import get_raw_db, close_db_sqlite
 from models.photo_manager import PhotoManager, Metric
 
@@ -14,6 +14,17 @@ cursor = db.cursor()
 DB_COMMIT_SIZE = 100
 
 img_pointer = 0
+
+def dizziness_factor(photo_path):
+    image = cv2.imread(photo_path)
+    # Convert to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Calculate the difference between consecutive frames (which is the same as the image itself)
+    diff = cv2.absdiff(gray, cv2.GaussianBlur(gray, (5, 5), 0))
+    # Calculate the mean of the absolute differences
+    dizziness_factor = np.mean(diff)
+    return dizziness_factor
+
 for photo in photos:
     img_pointer = img_pointer + 1
     path = photo['path']
