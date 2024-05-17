@@ -37,8 +37,8 @@ class PhotoManager:
         cursor = self.conn.cursor()
 
         # Get existing photos from DB
-        cursor.execute("SELECT path FROM photos")
-        existing_photos = [row[0] for row in cursor.fetchall()]
+        existing_photos = cursor.execute("SELECT path FROM photos")
+        existing_photos = [row[0] for row in existing_photos.fetchall()]
 
         # Scan for new photos
         all_photos = [os.path.join(dp, f) for dp, dn, filenames in os.walk(self.base_path) for f in filenames if os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS]

@@ -15,24 +15,33 @@ def calculate_similarity(photo1_path, photo2_path):
     img2 = cv2.imread(photo2_path, cv2.IMREAD_GRAYSCALE)
     
     # Initialize ORB detector
-    orb = cv2.ORB()
+    orb = cv2.ORB_create()
     
     # Find keypoints and descriptors
     try:
         kp1, des1 = orb.detectAndCompute(img1, None)
         kp2, des2 = orb.detectAndCompute(img2, None)
     except cv2.error as e:
-        # print("Error in image", photo1_path, photo2_path, e)
+        print("Error in image", photo1_path, photo2_path, e)
         return 0
     
     # Match descriptors using BFMatcher
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    if des1 is None:
+        photo_manager.flag_image(photo1_path)
+        return -1
+    
+    if des2 is None:
+        photo_manager.flag_image(photo2_path)
+        return -2
+
     matches = bf.match(des1, des2)
     
     # Calculate similarity score based on the number of good matches
     good_matches = [m for m in matches if m.distance < 50]  # Adjust threshold as needed
     similarity_score = len(good_matches) / max(len(kp1), len(kp2))
     
+    # print("Similarity score", similarity_score, photo1_path, photo2_path)
     return similarity_score
 
 
@@ -81,7 +90,6 @@ img_pointer = 0
 for photo in photos:
     img_pointer = img_pointer + 1
     path = photo['path']
-    print("Processing", path)
     if is_json_key_present(similar_images_map, path):
         continue
 
@@ -92,12 +100,18 @@ for photo in photos:
     
     # Query for all images that are +-5min from the current image
     time_filtered_images = cursor.execute("SELECT path FROM photos WHERE capture_date BETWEEN ? AND ?", (photo['capture_date'] - TIME_THRESHOLD, photo['capture_date'] + TIME_THRESHOLD))
+    time_filtered_images = time_filtered_images.fetchall()
+    print("Processing", path, ",", len(time_filtered_images), "Time filtered images")
     duplicate_found = False
     for image in time_filtered_images:
         image = image[0]
         if image == path:
             continue
+        # print("Comparing", path, image)
         similarity_score = calculate_similarity(path, image)
+        if similarity_score == -1:
+            # No descriptors found for image1
+            continue
         if similarity_score >= SIMILARITY_THRESHOLD:
             duplicate_found = True
             cursor.execute("INSERT INTO image_similarity (image1, image2, similarity_index) VALUES (?, ?, ?)", (path, image, similarity_score))
